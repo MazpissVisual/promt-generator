@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Generator Media Ajar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Playfair+Display:wght@400;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ===== Design tokens (tema Serif) ===== */
+        :root {
+            --background: #FAFAF8;
+            --foreground: #1A1A1A;
+            --muted: #F5F3F0;
+            --muted-foreground: #6B6B6B;
+            --accent: #B8860B;            /* emas: garis, ring, aksen dekoratif */
+            --accent-secondary: #D4A84B;
+            --accent-strong: #8F6A08;     /* emas lebih gelap: teks kecil & tombol (kontras AA) */
+            --accent-strong-hover: #7A5A06;
+            --border: #E8E4DF;
+            --border-hover: #CFC7BD;
+            --card: #FFFFFF;
+            --danger: #A32929;
+            --shadow-sm: 0 1px 2px rgba(26,26,26,0.04);
+            --shadow-md: 0 4px 12px rgba(26,26,26,0.06);
+            --shadow-lg: 0 8px 24px rgba(26,26,26,0.08);
+            --font-display: "Playfair Display", Georgia, serif;
+            --font-body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+            --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            background: var(--background);
+            color: var(--foreground);
+            font-family: var(--font-body);
+            font-size: 1rem;
+            line-height: 1.75;
+            letter-spacing: 0.01em;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+        /* Tekstur kertas */
+        body::before {
+            content: "";
+            position: fixed; inset: 0;
+            pointer-events: none;
+            opacity: 0.3;
+            z-index: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.1 0 0 0 0 0.1 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+        /* Cahaya ambient */
+        body::after {
+            content: "";
+            position: absolute; top: -180px; left: 50%;
+            width: 720px; height: 720px;
+            transform: translateX(-50%);
+            border-radius: 50%;
+            background: var(--accent);
+            opacity: 0.04;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .page { position: relative; z-index: 1; }
+        .container { max-width: 64rem; margin: 0 auto; padding: 0 1.5rem; }
+
+        .hidden { display: none !important; }
+        :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+        /* ===== Hero ===== */
+        .hero { text-align: center; padding-top: 5rem; padding-bottom: 3.5rem; }
+        .hero h1 {
+            font-family: var(--font-display);
+            font-weight: 400;
+            font-size: clamp(2.5rem, 7vw, 4.5rem);
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            margin: 1.5rem 0 1.25rem;
+        }
+        .hero h1 { text-wrap: balance; }
+        .hero h1 em { font-style: italic; color: var(--accent-strong); white-space: nowrap; }
+        .hero p { max-width: 36rem; margin: 0 auto; color: var(--muted-foreground); font-size: 1.125rem; }
+        .hero .rule { display: block; width: 4rem; height: 1px; background: var(--accent); margin: 2rem auto 0; }
+
+        .credit {
+            display: inline-block;
+            max-width: 100%;
+            padding: 0.55rem clamp(0.75rem, 4vw, 1.5rem);
+            font-family: var(--font-mono);
+            font-size: clamp(0.6rem, 2.9vw, 0.875rem);
+            font-weight: 500;
+            white-space: nowrap;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--accent-strong);
+            background: rgba(184,134,11,0.08);
+            border: 1px solid var(--accent);
+            border-radius: 999px;
+        }
+
+        /* ===== Label seksi ===== */
+        .section-label { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+        .section-label .line { flex: 1; height: 1px; background: var(--border); }
+        .small-caps {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent-strong);
+        }
+        .section-title {
+            font-family: var(--font-display);
+            font-weight: 400;
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+            text-align: center;
+            margin: 0 0 2.5rem;
+        }
+        section { margin-bottom: 6rem; }
+
+        /* ===== Kartu pilihan media ===== */
+        .media-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.25rem; }
+        .media-card {
+            appearance: none;
+            font: inherit; color: inherit; text-align: left;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-top: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem 1.25rem;
+            min-height: 44px;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            touch-action: manipulation;
+            transition: all 200ms ease-out;
+        }
+        .media-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-hover); background: #FDFCFA; }
+        .media-card .idx { display: block; font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.15em; color: var(--muted-foreground); margin-bottom: 1rem; }
+        .media-card .name { display: block; font-family: var(--font-display); font-weight: 600; font-size: 1.125rem; line-height: 1.3; }
+        .media-card .desc { display: block; margin-top: 0.35rem; font-size: 0.875rem; line-height: 1.5; color: var(--muted-foreground); }
+        .media-card.card-active {
+            background: rgba(184,134,11,0.06);
+            border-color: var(--accent);
+            border-top-color: var(--accent);
+            box-shadow: var(--shadow-md);
+        }
+        .media-card.card-active .idx { color: var(--accent-strong); }
+
+        /* ===== Form ===== */
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-top: 2px solid var(--accent);
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            padding: clamp(1.5rem, 4vw, 2.5rem);
+        }
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 1.75rem 2rem; }
+        .span-2 { grid-column: 1 / -1; }
+        @media (min-width: 768px) { .form-grid { grid-template-columns: 1fr 1fr; } }
+        .label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--foreground);
+        }
+        .field {
+            width: 100%;
+            min-height: 3rem;
+            padding: 0.7rem 0.9rem;
+            font: inherit;
+            letter-spacing: 0.01em;
+            color: var(--foreground);
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+        }
+        textarea.field { resize: vertical; line-height: 1.6; }
+        .field::placeholder { color: rgba(107,107,107,0.6); }
+        .field:hover { border-color: var(--border-hover); }
+        .field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--accent); }
+
+        /* ===== Tombol ===== */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            min-height: 44px;
+            padding: 0.85rem 2rem;
+            font: inherit; font-weight: 500; letter-spacing: 0.05em;
+            border-radius: 6px;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 200ms ease-out;
+        }
+        .btn-primary {
+            width: 100%;
+            color: #fff;
+            background: var(--accent-strong);
+            border: 1px solid var(--accent-strong);
+            box-shadow: 0 1px 2px rgba(184,134,11,0.25);
+        }
+        .btn-primary:hover { background: var(--accent-strong-hover); border-color: var(--accent-strong-hover); box-shadow: 0 4px 12px rgba(184,134,11,0.3); transform: translateY(-2px); }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-outline { color: var(--foreground); background: transparent; border: 1px solid var(--foreground); padding: 0.5rem 1.25rem; font-size: 0.875rem; }
+        .btn-outline:hover { background: var(--muted); border-color: var(--accent-strong); color: var(--accent-strong); }
+
+        /* ===== Hasil ===== */
+        #result-section { animation: fadeIn 0.6s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .result-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding-bottom: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        #generated-prompt { white-space: pre-wrap; background: var(--muted); border-radius: 6px; padding: 1.5rem; line-height: 1.75; }
+        #copy-message { margin-top: 1rem; text-align: center; font-size: 0.9375rem; font-weight: 500; }
+        .msg-ok { color: #3F6B2E; }
+        .msg-err { color: var(--danger); }
+
+        /* ===== Footer ===== */
+        footer { text-align: center; padding-top: 2rem; padding-bottom: 3rem; }
+        footer .footer-inner { border-top: 1px solid var(--border); padding-top: 2rem; }
+        footer p { margin: 0; color: var(--muted-foreground); font-size: 0.875rem; }
+        footer .small-caps { color: var(--muted-foreground); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+            .btn-primary:hover { transform: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <header class="hero container">
+        <span class="credit">Magister Teknologi Pendidikan 2026</span>
+        <h1>Prompt Generator <em>Media Ajar</em></h1>
+        <p>Bantu Guru menciptakan media pembelajaran berkualitas dengan kekuatan AI.</p>
+        <span class="rule" aria-hidden="true"></span>
+    </header>
+
+    <main class="container">
+
+        <!-- Langkah 1 -->
+        <section aria-labelledby="h-step1">
+            <div class="section-label">
+                <span class="line"></span><span class="small-caps">Langkah 01</span><span class="line"></span>
+            </div>
+            <h2 id="h-step1" class="section-title">Pilih Jenis Media Ajar</h2>
+            <div class="media-grid">
+                <button onclick="setMediaType('slide')" id="btn-slide" aria-pressed="false" class="media-card">
+                    <span class="idx">01</span><span class="name">Slide Presentasi</span><span class="desc">Outline slide &amp; naskah guru</span>
+                </button>
+                <button onclick="setMediaType('infografis')" id="btn-infografis" aria-pressed="false" class="media-card">
+                    <span class="idx">02</span><span class="name">Infografis</span><span class="desc">Konsep visual &amp; tata letak</span>
+                </button>
+                <button onclick="setMediaType('video')" id="btn-video" aria-pressed="false" class="media-card">
+                    <span class="idx">03</span><span class="name">Naskah Video</span><span class="desc">Script &amp; storyboard</span>
+                </button>
+                <button onclick="setMediaType('game')" id="btn-game" aria-pressed="false" class="media-card">
+                    <span class="idx">04</span><span class="name">Game HTML</span><span class="desc">Kuis &amp; permainan edukatif</span>
+                </button>
+                <button onclick="setMediaType('web')" id="btn-web" aria-pressed="false" class="media-card">
+                    <span class="idx">05</span><span class="name">Web Interaktif</span><span class="desc">Laboratorium digital satu halaman</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Langkah 2 -->
+        <section aria-labelledby="h-step2">
+            <div class="section-label">
+                <span class="line"></span><span class="small-caps">Langkah 02</span><span class="line"></span>
+            </div>
+            <h2 id="h-step2" class="section-title">Lengkapi Detail Pembelajaran</h2>
+
+            <div class="panel">
+                <div class="form-grid">
+                    <div>
+                        <label for="topic" class="label">Mata Pelajaran / Topik</label>
+                        <input type="text" id="topic" class="field" placeholder="Contoh: Fotosintesis Tumbuhan">
+                    </div>
+                    <div>
+                        <label for="grade" class="label">Jenjang Pendidikan</label>
+                        <select id="grade" class="field">
+                            <option value="SD">Sekolah Dasar (SD)</option>
+                            <option value="SMP">SMP / Sederajat</option>
+                            <option value="SMA">SMA / SMK / Sederajat</option>
+                            <option value="Universitas">Universitas / Umum</option>
+                        </select>
+                    </div>
+                    <div class="span-2">
+                        <label for="objective" class="label">Tujuan Pembelajaran</label>
+                        <textarea id="objective" rows="2" class="field" placeholder="Apa yang ingin dicapai siswa setelah belajar ini?"></textarea>
+                    </div>
+                    <div class="span-2">
+                        <label for="keyPoints" class="label">Poin Utama / Materi Kunci (pisahkan dengan koma)</label>
+                        <textarea id="keyPoints" rows="3" class="field" placeholder="Contoh: Klorofil, Matahari, Karbondioksida, Glukosa"></textarea>
+                    </div>
+                    <div>
+                        <label for="tone" class="label">Gaya Bahasa / Tone</label>
+                        <select id="tone" class="field">
+                            <option value="Menyenangkan dan Ceria">Menyenangkan &amp; Ceria</option>
+                            <option value="Formal dan Akademik">Formal &amp; Akademik</option>
+                            <option value="Inspiratif dan Motivatif">Inspiratif</option>
+                            <option value="Sederhana dan Mudah Dimengerti">Sederhana (Storytelling)</option>
+                        </select>
+                    </div>
+                    <div id="additional-option">
+                        <!-- Dynamic field based on media type -->
+                    </div>
+                    <div class="span-2">
+                        <label for="context" class="label">Kurikulum / Konteks Tambahan (opsional)</label>
+                        <input type="text" id="context" class="field" placeholder="Contoh: Kurikulum Merdeka Fase D, siswa kelas 8, 2 x 40 menit">
+                    </div>
+                </div>
+
+                <div style="margin-top: 2.5rem;">
+                    <button onclick="generatePrompt()" class="btn btn-primary">Buat Prompt Sekarang</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Langkah 3 -->
+        <section id="result-section" class="hidden" aria-labelledby="h-step3">
+            <div class="section-label">
+                <span class="line"></span><span class="small-caps">Langkah 03</span><span class="line"></span>
+            </div>
+            <h2 id="h-step3" class="section-title">Salin Prompt ke AI Anda</h2>
+            <div class="panel">
+                <div class="result-head">
+                    <span class="small-caps">Prompt Tergenerate</span>
+                    <button onclick="copyPrompt()" class="btn btn-outline">Salin Teks</button>
+                </div>
+                <div id="generated-prompt"></div>
+            </div>
+            <div id="copy-message" role="status" aria-live="polite" class="hidden"></div>
+        </section>
+    </main>
+
+    <footer class="container">
+        <div class="footer-inner">
+            <p><span class="small-caps">&copy; 2026</span> &nbsp;Prompt Generator Media Ajar<br>Magister Teknologi Pendidikan 2026</p>
+        </div>
+    </footer>
+
+</div>
+
+    <script>
+        let selectedMedia = 'slide';
+
+        function setMediaType(type) {
+            selectedMedia = type;
+            // Update UI selection
+            document.querySelectorAll('.media-card').forEach(card => {
+                card.classList.remove('card-active');
+                card.setAttribute('aria-pressed', 'false');
+            });
+            const activeBtn = document.getElementById('btn-' + type);
+            activeBtn.classList.add('card-active');
+            activeBtn.setAttribute('aria-pressed', 'true');
+
+            // Update additional options
+            const additionalDiv = document.getElementById('additional-option');
+            if (type === 'slide') {
+                additionalDiv.innerHTML = `
+                    <label for="extra" class="label">Jumlah Slide (1-50)</label>
+                    <input type="number" id="extra" value="10" min="1" max="50" step="1" class="field">
+                `;
+            } else if (type === 'video') {
+                additionalDiv.innerHTML = `
+                    <label for="extra" class="label">Durasi Video (menit, 1-60)</label>
+                    <input type="number" id="extra" value="5" min="1" max="60" step="1" class="field">
+                `;
+            } else if (type === 'web') {
+                additionalDiv.innerHTML = `
+                    <label for="extra" class="label">Gaya Tampilan</label>
+                    <select id="extra" class="field">
+                        <option value="Doodle Neo-Brutalism">Doodle Neo-Brutalism (ceria, garis tebal)</option>
+                        <option value="Modern Bersih">Modern Bersih &amp; Minimalis</option>
+                        <option value="Petualangan Game">Petualangan ala Game</option>
+                        <option value="Editorial Serif">Editorial Serif (elegan, ivory &amp; emas)</option>
+                    </select>
+                `;
+            } else if (type === 'game') {
+                additionalDiv.innerHTML = `
+                    <label for="extra" class="label">Jenis Game</label>
+                    <select id="extra" class="field">
+                        <option value="Kuis Pilihan Ganda">Kuis Pilihan Ganda</option>
+                        <option value="Drag and Drop">Cocokkan Gambar (Drag &amp; Drop)</option>
+                        <option value="Tebak Kata">Tebak Kata / Teka-teki</option>
+                    </select>
+                `;
+            } else {
+                additionalDiv.innerHTML = `
+                    <label for="extra" class="label">Format Visual</label>
+                    <select id="extra" class="field">
+                        <option value="Alur Proses / Timeline">Alur Proses / Timeline</option>
+                        <option value="Perbandingan">Perbandingan A vs B</option>
+                        <option value="Peta Pikiran">Mind Map / Peta Konsep</option>
+                    </select>
+                `;
+            }
+        }
+
+        function generatePrompt() {
+            const topic = document.getElementById('topic').value.trim();
+            const grade = document.getElementById('grade').value;
+            const objective = document.getElementById('objective').value.trim()
+                || "(belum ditentukan, mohon usulkan tujuan yang sesuai dengan topik dan jenjang)";
+            const keyPoints = document.getElementById('keyPoints').value.trim()
+                || "(belum ditentukan, mohon pilih materi kunci yang paling relevan)";
+            const tone = document.getElementById('tone').value;
+            const extraEl = document.getElementById('extra');
+            let extra = extraEl?.value || "";
+
+            if (!topic) {
+                alert("Mohon isi topik mata pelajaran terlebih dahulu.");
+                document.getElementById('topic').focus();
+                return;
+            }
+
+            if (selectedMedia === 'slide' || selectedMedia === 'video') {
+                const n = parseInt(extra, 10);
+                const min = Number(extraEl.min), max = Number(extraEl.max);
+                if (!Number.isInteger(n) || n < min || n > max) {
+                    alert(`${selectedMedia === 'slide' ? 'Jumlah slide' : 'Durasi video'} harus berupa angka antara ${min} dan ${max}.`);
+                    extraEl.focus();
+                    return;
+                }
+                extra = String(n);
+            }
+
+            const ctxValue = document.getElementById('context').value.trim();
+            const ctx = ctxValue ? `\nKonteks/Kurikulum: ${ctxValue}.` : "";
+
+            const gradeNotes = {
+                "SD": "Gunakan kalimat pendek, kosakata sederhana, contoh konkret dari kehidupan sehari-hari anak, dan hindari istilah teknis tanpa penjelasan.",
+                "SMP": "Gunakan bahasa yang jelas dengan contoh dari lingkungan sekitar remaja; istilah teknis boleh dipakai bila langsung dijelaskan.",
+                "SMA": "Gunakan bahasa yang runtut dan analitis, sertakan hubungan sebab-akibat, data atau contoh kontekstual, serta dorong penalaran tingkat tinggi (menganalisis dan mengevaluasi).",
+                "Universitas": "Gunakan bahasa akademik yang tepat, sertakan konsep teoretis, studi kasus, dan dorong berpikir kritis serta refleksi."
+            };
+            const gradeNote = gradeNotes[grade] || "";
+
+            const commonRules = `ATURAN UMUM:
+- Tulis dalam Bahasa Indonesia yang baik dan benar. ${gradeNote}
+- Pastikan seluruh konten akurat secara ilmiah/faktual. Jangan mengarang data, kutipan, atau sumber; jika ragu, katakan bahwa perlu diverifikasi.
+- Jika ada informasi yang kurang, buat asumsi yang wajar dan tuliskan asumsi tersebut di bagian awal jawaban (maksimal 3 butir).
+- Pastikan setiap bagian selaras dengan tujuan pembelajaran dan melayani poin materi kunci.`;
+
+            let prompt = "";
+
+            if (selectedMedia === 'slide') {
+                prompt = `PERAN:
+Bertindaklah sebagai Desainer Instruksional dan guru berpengalaman yang ahli menyusun presentasi pembelajaran yang efektif dan menarik.
+
+TUGAS:
+Susun rancangan presentasi (slide demi slide) untuk topik "${topic}".
+
+KONTEKS PEMBELAJARAN:
+- Jenjang sasaran: ${grade}
+- Tujuan pembelajaran: ${objective}
+- Materi kunci: ${keyPoints}
+- Jumlah slide: ${extra} slide (sudah termasuk slide judul dan penutup)
+- Nada bahasa: ${tone}${ctx}
+
+${commonRules}
+
+PRINSIP DESAIN SLIDE:
+- Satu slide = satu gagasan utama. Teks di layar maksimal 30-40 kata per slide; selebihnya masuk ke naskah guru.
+- Alur: (1) Judul, (2) Apersepsi/pertanyaan pemantik, (3) Tujuan pembelajaran, (4) Penjelasan materi bertahap dari konkret ke abstrak, (5) Contoh/studi kasus/aktivitas singkat, (6) Rangkuman, (7) Evaluasi dan refleksi.
+- Sebarkan aktivitas interaktif (tanya jawab, diskusi pasangan, polling, atau kuis kilat) agar siswa tidak pasif.
+
+FORMAT OUTPUT (ikuti urutan ini):
+1. Asumsi yang kamu pakai (jika ada).
+2. Tabel Markdown dengan kolom: No | Judul Slide | Poin Utama di Layar | Rekomendasi Visual (jelaskan jenis visual dan isinya) | Naskah Guru (2-4 kalimat yang diucapkan) | Aktivitas/Pertanyaan Pemantik | Estimasi Durasi.
+3. Saran palet warna dan dua pasang font yang cocok untuk jenjang ${grade}.
+4. Lima soal evaluasi (campuran pilihan ganda dan uraian singkat) lengkap dengan kunci jawaban dan pembahasan singkat.
+5. Tiga ide kegiatan tindak lanjut/pengayaan.
+6. Untuk tiga slide terpenting, berikan prompt pembuatan gambar dalam bahasa Inggris yang siap ditempel ke generator gambar AI.`;
+
+            } else if (selectedMedia === 'infografis') {
+                prompt = `PERAN:
+Bertindaklah sebagai Desainer Infografis Edukasi sekaligus Penulis Konten (copywriter) pendidikan.
+
+TUGAS:
+Rancang infografis edukatif tentang "${topic}" yang mudah dipahami hanya dengan sekali lihat.
+
+KONTEKS PEMBELAJARAN:
+- Jenjang sasaran: ${grade}
+- Format visual: ${extra}
+- Pesan utama yang harus tertangkap: ${objective}
+- Data/materi penting: ${keyPoints}
+- Nada bahasa: ${tone}${ctx}
+
+${commonRules}
+
+PRINSIP DESAIN:
+- Hierarki visual jelas: judul, subjudul, bagian utama, lalu detail pendukung.
+- Satu bagian = satu ide. Teks per bagian maksimal 20-25 kata; utamakan ikon, angka, dan diagram daripada paragraf.
+- Alur baca terarah (atas ke bawah atau kiri ke kanan) dengan penomoran atau panah.
+- Palet maksimal 4 warna dengan kontras teks yang baik (rasio minimal 4,5:1).
+
+FORMAT OUTPUT (ikuti urutan ini):
+1. Judul utama (catchy, maksimal 8 kata) dan subjudul satu kalimat.
+2. Rekomendasi ukuran/rasio kanvas (misalnya 1080x1920 untuk dibagikan di HP atau A3 portrait untuk dicetak) beserta alasannya.
+3. Tata letak dari atas ke bawah, dituliskan per bagian dengan format: Nomor | Judul Bagian | Teks Singkat di Infografis | Visual/Ikon/Diagram yang disarankan | Warna dominan.
+4. Palet warna lengkap dengan kode HEX dan peran masing-masing (latar, aksen, teks), serta dua rekomendasi font.
+5. Satu "fakta kunci" atau angka menonjol yang ditampilkan besar sebagai penarik perhatian.
+6. Teks penutup/ajakan bertindak singkat dan sumber rujukan yang disarankan untuk dicantumkan.
+7. Prompt pembuatan gambar dalam bahasa Inggris (detail gaya, komposisi, dan warna) yang siap ditempel ke generator gambar AI untuk visual utama.
+8. Daftar periksa akhir: apakah mudah dibaca dari jarak jauh, ramah buta warna, dan tidak terlalu padat.`;
+
+            } else if (selectedMedia === 'video') {
+                const words = Math.round(Number(extra) * 130);
+                prompt = `PERAN:
+Bertindaklah sebagai Penulis Naskah Video Edukasi dan Sutradara Konten Pembelajaran yang ahli menjaga perhatian siswa.
+
+TUGAS:
+Tulis naskah lengkap beserta storyboard video pembelajaran tentang "${topic}" berdurasi sekitar ${extra} menit.
+
+KONTEKS PEMBELAJARAN:
+- Jenjang sasaran: ${grade}
+- Tujuan pembelajaran: ${objective}
+- Poin materi yang wajib dibahas: ${keyPoints}
+- Gaya penyampaian: ${tone}${ctx}
+
+${commonRules}
+
+PANDUAN DURASI DAN GAYA:
+- Total narasi kira-kira ${words} kata (sekitar 130 kata per menit). Sesuaikan jumlah bagian dengan durasi tersebut.
+- Satu bagian membahas satu ide dan tidak lebih dari 60-90 detik.
+- Gunakan kalimat lisan yang natural, sapaan langsung ke penonton, dan jeda untuk berpikir.
+
+STRUKTUR NASKAH:
+1. Hook (10 detik pertama): pertanyaan, fakta mengejutkan, atau skenario singkat yang memancing rasa ingin tahu.
+2. Pengantar: tujuan belajar yang disampaikan dengan bahasa anak/siswa, bukan bahasa dokumen.
+3. Isi: pecah materi menjadi bagian-bagian kecil dari yang mudah ke yang sulit, masing-masing dengan analogi atau contoh dari kehidupan sehari-hari.
+4. Jeda interaktif: minimal satu pertanyaan yang meminta penonton berhenti dan menjawab.
+5. Rangkuman: tiga poin kunci yang diulang singkat.
+6. Penutup dan ajakan bertindak: tantangan kecil atau tugas ringan.
+
+FORMAT OUTPUT:
+1. Asumsi yang kamu pakai (jika ada), dan usulan 3 judul video yang menarik.
+2. Tabel Markdown berisi: Waktu (mm:ss) | Adegan/Visual di Layar | Narasi (kalimat lengkap untuk dibaca) | Teks/Animasi di Layar | Efek Suara atau Musik.
+3. Catatan produksi: gaya visual yang disarankan, kebutuhan alat/aset, dan saran musik latar (suasana, bukan judul berhak cipta).
+4. Tiga pertanyaan refleksi untuk siswa setelah menonton, beserta jawaban yang diharapkan.
+5. Ide thumbnail dan deskripsi video (maksimal 3 kalimat) untuk diunggah.`;
+
+            } else if (selectedMedia === 'web') {
+                const webStyles = {
+                    "Doodle Neo-Brutalism": "Gaya Doodle Neo-Brutalism yang ceria: latar krem dengan pola titik-titik halus, semua kartu/tombol/badge memakai garis tepi gelap tebal (3-4px) dengan sudut sedikit tidak simetris seperti gambar tangan, bayangan keras offset (tanpa blur), badge berbingkai putus-putus, kata kunci pada judul diberi stabilo kuning, warna aksen utama merah-pink dan biru tua, serta font Google bergaya tulisan tangan (misalnya 'Patrick Hand' untuk isi dan 'Gochi Hand' atau 'Caveat Brush' untuk judul).",
+                    "Modern Bersih": "Gaya modern, bersih, dan minimalis: banyak ruang kosong, kartu putih bersudut membulat dengan bayangan lembut, satu warna aksen utama, tipografi sans-serif (misalnya 'Inter' atau 'Plus Jakarta Sans'), dan transisi halus.",
+                    "Petualangan Game": "Gaya petualangan ala game: tampilan seperti peta misi/level dengan progress bar, XP, lencana (badge) yang terbuka setelah menyelesaikan bagian, warna cerah dan kontras, serta animasi kecil saat berhasil.",
+                    "Editorial Serif": "Gaya Editorial Serif yang elegan dan hangat seperti majalah sastra: latar ivory (#FAFAF8), teks hitam pekat (#1A1A1A), satu aksen emas (#B8860B), kartu putih dengan garis tepi tipis 1px (#E8E4DF) dan garis aksen emas 2px di sisi atas, garis pemisah horizontal tipis antar bagian, label bagian berupa huruf kapital ber-spasi lebar (font 'IBM Plex Mono'), judul besar berfont 'Playfair Display', teks isi 'Source Sans 3' dengan line-height 1.75, ruang kosong yang lega, dan animasi halus yang tenang tanpa efek memantul."
+                };
+                prompt = `PERAN:
+Bertindaklah sebagai Web Developer front-end senior sekaligus Desainer Instruksional dan desainer UI/UX.
+
+TUGAS:
+Buatkan SATU file HTML lengkap (HTML + CSS + JavaScript, siap dibuka langsung di browser) berupa web interaktif / laboratorium digital untuk materi "${topic}".
+
+KONTEKS PEMBELAJARAN:
+- Pengguna: siswa jenjang ${grade}
+- Tujuan pembelajaran: ${objective}
+- Materi kunci: ${keyPoints}
+- Nada bahasa: ${tone}${ctx}
+
+${commonRules}
+
+GAYA TAMPILAN:
+${webStyles[extra] || extra}
+
+STRUKTUR HALAMAN (single page, perpindahan bagian tanpa reload):
+1. Navbar tetap di atas: logo dan nama web, menu bertab (Beranda, Materi, Simulasi, Latihan, Kuis/Asesmen, plus "Lainnya" bila perlu). Menu aktif diberi highlight dan ikut berubah saat bagian di-scroll. Pada layar kecil menu berubah menjadi tombol hamburger.
+2. Hero: badge kecil, judul besar dengan satu frasa kunci diberi aksen warna, paragraf pembuka singkat, dua tombol (aksi utama "Mulai Petualangan" dan aksi kedua), serta maskot/ikon besar dengan balon ucapan yang menyapa siswa.
+3. Materi: satu kartu interaktif per poin materi kunci. Saat diklik tampil penjelasan singkat, contoh dari kehidupan sehari-hari, dan visual (emoji, SVG inline, atau CSS).
+4. Simulasi/Visualisasi: minimal satu elemen yang bisa dimanipulasi (slider, tombol, atau animasi) agar siswa mengalami konsepnya langsung, disertai teks yang menjelaskan apa yang terjadi.
+5. Latihan: aktivitas drag-and-drop atau mengurutkan alur, dengan umpan balik benar/salah yang jelas dan tombol coba lagi.
+6. Kuis/Asesmen: 5-10 soal bertingkat kesulitan sesuai jenjang ${grade}, penjelasan di setiap jawaban, skor akhir, kategori capaian (misalnya Perlu Latihan, Baik, Sangat Baik), dan tombol ulangi.
+7. Elemen pendukung: tombol melayang kecil di pojok kanan bawah (misalnya suara on/off, dibuat dengan Web Audio sederhana tanpa file audio), bar kemajuan belajar, dan footer singkat.
+
+PERSYARATAN TEKNIS:
+- Satu file index.html; boleh memakai Tailwind CSS via CDN, Google Fonts, dan ikon Lucide via CDN. Tanpa framework dan tanpa file gambar eksternal.
+- Pisahkan data di satu objek JavaScript di bagian atas skrip (teks materi, soal, kunci jawaban) agar guru mudah mengubah isinya tanpa menyentuh logika.
+- Responsif (nyaman di HP dan laptop), kontras warna minimal 4,5:1, tombol dapat dioperasikan dengan keyboard, fokus terlihat jelas, gunakan atribut ARIA seperlunya, dan hormati prefers-reduced-motion.
+- Jika memakai penyimpanan lokal (misalnya skor terbaik), bungkus dengan try/catch agar tidak error.
+- Tidak ada teks placeholder atau "lorem ipsum"; semua konten nyata dan akurat.
+
+FORMAT OUTPUT:
+1. Ringkasan singkat (maksimal 5 butir) tentang rancangan yang kamu buat dan asumsi yang dipakai.
+2. Kode lengkap dalam SATU blok kode, dengan komentar singkat di tiap bagian.
+3. Cara menjalankan (simpan sebagai index.html lalu buka di browser) dan tiga saran pengembangan lanjutan.`;
+
+            } else if (selectedMedia === 'game') {
+                const mechanics = {
+                    "Kuis Pilihan Ganda": "Satu soal per layar dengan 4 pilihan jawaban (urutan pilihan diacak), penghitung waktu per soal (misalnya 20 detik), nyawa/bintang, umpan balik langsung (benar/salah) disertai penjelasan singkat, dan indikator kemajuan (soal ke-n dari 10).",
+                    "Drag and Drop": "Pemain menyeret kartu istilah/gambar (emoji atau SVG) ke area sasaran yang tepat. Wajib mendukung mouse dan sentuhan, serta menyediakan alternatif keyboard (pilih kartu lalu pilih area). Berikan umpan balik visual saat kartu benar atau salah, dan batasi percobaan agar ada tantangan.",
+                    "Tebak Kata": "Pemain menebak kata/istilah dari petunjuk (definisi atau ciri) dengan kotak huruf (seperti permainan tebak kata). Sediakan papan huruf di layar dan keyboard fisik, batas kesalahan, tombol petunjuk dengan pengurangan skor, dan penjelasan makna kata setelah ditebak."
+                };
+                prompt = `PERAN:
+Bertindaklah sebagai Pengembang Game Edukasi (HTML5/JavaScript) dan Desainer Instruksional yang menguasai prinsip gamifikasi.
+
+TUGAS:
+Buatkan game edukasi berupa SATU file HTML mandiri (HTML + CSS + JavaScript, tanpa library atau file eksternal) bertipe "${extra}" untuk topik "${topic}".
+
+KONTEKS PEMBELAJARAN:
+- Pemain: siswa jenjang ${grade}
+- Materi utama: ${keyPoints}
+- Target kompetensi: ${objective}
+- Nada bahasa: ${tone}${ctx}
+
+${commonRules}
+
+MEKANIK UTAMA:
+${mechanics[extra] || extra}
+
+KEBUTUHAN GAME:
+1. Layar mulai (judul, petunjuk singkat, tombol Mulai), layar bermain, dan layar hasil (skor, bintang/lencana, ringkasan materi yang perlu diulang, tombol Main Lagi).
+2. Tepat 10 soal/tantangan dengan tingkat kesulitan bertahap (3 mudah, 4 sedang, 3 sulit) yang sesuai jenjang ${grade} dan mencakup semua materi utama.
+3. Sistem skor dan motivasi: poin, bonus untuk jawaban beruntun, serta pesan penyemangat yang mendidik (bukan mempermalukan saat salah).
+4. Setiap jawaban benar/salah disertai penjelasan singkat mengapa, agar game benar-benar mengajar.
+5. Seluruh soal disimpan sebagai array/objek data di bagian atas skrip agar guru mudah mengganti isinya.
+6. Visual: gunakan emoji, SVG inline, dan CSS (tanpa file gambar atau audio), warna cerah yang nyaman untuk anak sekolah, animasi sederhana saat benar/salah, dan tata letak responsif untuk HP maupun laptop.
+7. Aksesibilitas: dapat dimainkan dengan keyboard, kontras warna baik, teks cukup besar, dan hormati prefers-reduced-motion. Penyimpanan skor tertinggi (jika dipakai) harus dibungkus try/catch.
+
+FORMAT OUTPUT:
+1. Alur permainan (game flow) dalam 5-8 butir singkat dan daftar asumsi yang dipakai.
+2. Tabel 10 soal/tantangan: No | Tingkat | Pertanyaan/Tantangan | Jawaban Benar | Penjelasan.
+3. Kode lengkap dalam SATU blok kode, dengan komentar singkat di tiap bagian.
+4. Cara menjalankan dan tiga ide pengembangan lanjutan.`;
+            }
+
+            document.getElementById('generated-prompt').innerText = prompt;
+            const result = document.getElementById('result-section');
+            result.classList.remove('hidden');
+            result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function copyPrompt() {
+            const promptText = document.getElementById('generated-prompt').innerText;
+            const msg = document.getElementById('copy-message');
+            let ok = false;
+
+            try {
+                await navigator.clipboard.writeText(promptText);
+                ok = true;
+            } catch (e) {
+                const el = document.createElement('textarea');
+                el.value = promptText;
+                document.body.appendChild(el);
+                el.select();
+                try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+                document.body.removeChild(el);
+            }
+
+            msg.textContent = ok
+                ? "✓ Prompt berhasil disalin! Silakan tempel di ChatGPT/Gemini/Claude."
+                : "✗ Gagal menyalin. Silakan blok teks prompt dan salin secara manual.";
+            msg.classList.toggle('msg-ok', ok);
+            msg.classList.toggle('msg-err', !ok);
+            msg.classList.remove('hidden');
+            clearTimeout(copyPrompt.timer);
+            copyPrompt.timer = setTimeout(() => msg.classList.add('hidden'), 3000);
+        }
+
+        // Initialize
+        setMediaType('slide');
+    </script>
+</body>
+</html>
